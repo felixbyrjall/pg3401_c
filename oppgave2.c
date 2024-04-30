@@ -6,54 +6,99 @@
 
 #include "./include/oppgave2.h"
 
-#define BUFFER_SIZE 1014
+void changeMetadata(struct TASK2_WORD_METADATA *meta, char* token, int iIndex);
 
 int main(void) {
-	FILE *fpText = NULL;
-	FILE *fpBinary = NULL;
+	//Declaring and defining variables
+	int iIndex = 0;
 	char buffer[BUFFER_SIZE];
+	char aszWords[MAX_WORDS][MAX_WORD_LENGTH];
 	struct TASK2_WORD_METADATA *meta = NULL;
+	struct TASK2_WORD_METADATA aStructs[MAX_WORDS];
 	
-	fpText = fopen("eksamen_v24_oppgave2.txt", "r");
-	if(fpText != NULL) {
-		while (fgets(buffer, BUFFER_SIZE, fpText) != NULL) {
-			
-			int id = 1;
-			id++;
-			char delim[] = "\r\n";
-			char *token = strtok(buffer, delim);
-			
-			meta = (struct TASK2_WORD_METADATA *)malloc(sizeof(struct TASK2_WORD_METADATA));
-			if(meta == NULL) return 1;
-			
-			printf("%d", id);
-			
-			while (token != NULL) {
-				printf("\n%s is a", token);
-				if(isUpperCase(token)) {
-					printf(" lower");
-				}
-				if(isLowerCase(token)) {
-					printf(" upper");
-				}
-				if(isPalindrome(token)) {
-					printf(" palindrome");
-				}
-				if(isHeterogram(token)) {
-					printf(" heterogram");
-				}
-				token = strtok(NULL, delim);
+	//Clears the contents of the initialized array aszWords[]
+	memset(aszWords, 0, sizeof(aszWords));
+	memset(aszWords, 0, sizeof(aStructs[MAX_WORDS]));
+	
+	//Error handling if file reading goes wrong
+	FILE *fpText = fopen("eksamen_v24_oppgave2.txt", "r");
+	if(fpText == NULL) {
+		perror("Error: ");
+		return 1;
+	}
+	
+	//Error handling if opening output file goes wrong
+	FILE *fpBinary = fopen("output.bin", "wb");
+	if(fpBinary != NULL) {
+
+		//Reads the strings from the file
+		//Removes the \n that gets read, and tokenizes each string
+		//Each token gets put into the array aszWords
+		while (fgets(buffer, BUFFER_SIZE, fpText) != NULL && iIndex < MAX_WORDS) {
+			char strDelim[] = "\r\n";
+			char *strToken = strtok(buffer, strDelim);
+	
+			if(strToken != NULL) {
+				strncpy(aszWords[iIndex], strToken, sizeof(aszWords[0] - 1));
+				strToken = strtok(NULL, strDelim);
+				iIndex++;
 			}
-			
-			free(meta);
 		}
 		fclose(fpText);
+		
+		//Allocates memory to the struct
+		meta = (struct TASK2_WORD_METADATA *)malloc(sizeof(struct TASK2_WORD_METADATA));
+		if(meta == NULL) {
+			return 1;
+		}
+		
+		int length = sizeof(aszWords)/sizeof(aszWords[0]);
+		
+		for(int i = 0; i < length; i++) {
+			
+			//Changes the some of the words metadata
+			changeMetadata(meta, aszWords[i], i + 1);
+			
+			//Sets the default values
+			meta->bIsAnagram = false;
+			meta->bIsDisjoint = true;
+			
+			//Goes through each word, comparing it to all the other words
+			for(int j = 0; j < length; j++) {
+				if(i == j)continue;
+				if(isAnagram(aszWords[i], aszWords[j])) {
+					meta->bIsAnagram = true;
+				}
+				if(areDisjoint(aszWords[i], aszWords[j])) {
+					meta->bIsDisjoint = false;
+				}
+			}
+			//Sets [i] element in the array to the current metadata and word
+			aStructs[i] = *meta;
+		}
+		//Writes to the file from the array of structs and frees the memory allocated to the struct
+		fwrite(&aStructs, sizeof(aStructs), 1, fpBinary);
+		free(meta);
+		
 	} else {
 		perror("Error ");
-		return -1;
+		return 1;
 	}
+	
+	//Closes the output file
+	fclose(fpBinary);
 }
 
-void changeMetadata(struct TASK2_WORD_METADATA *meta, int iIndex) {
-	int i;
+//Function for changing some of the metadata for cleaner code
+void changeMetadata(struct TASK2_WORD_METADATA *meta, char* word, int i) {
+	meta->iIndex = i;
+	
+	meta->bIsPalindrom = isPalindrome(word);
+	meta->bIsHeterogram = isHeterogram(word);
+	meta->bIsUppercase = isUpperCase(word);
+	meta->bIsLowercase = isLowerCase(word);
+	
+	//Sets iSize to the length of the word passed in as a parameter, and copies the word into szWord[]
+	meta->iSize = strlen(word);
+	strncpy(meta->szWord, word, MAX_WORD_LENGTH - 1);
 }
