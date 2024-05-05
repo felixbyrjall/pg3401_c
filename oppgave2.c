@@ -18,7 +18,7 @@ int main(void) {
 	
 	//Clears the contents of the initialized array aszWords[]
 	memset(aszWords, 0, sizeof(aszWords));
-	memset(aszWords, 0, sizeof(aStructs[MAX_WORDS]));
+	memset(aStructs, 0, sizeof(aStructs));
 	
 	//Error handling if file reading goes wrong
 	FILE *fpText = fopen("eksamen_v24_oppgave2.txt", "r");
@@ -40,6 +40,7 @@ int main(void) {
 	
 			if(strToken != NULL) {
 				strncpy(aszWords[iIndex], strToken, sizeof(aszWords[0] - 1));
+				aszWords[iIndex][MAX_WORD_LENGTH - 1] = '\0';
 				strToken = strtok(NULL, strDelim);
 				iIndex++;
 			}
@@ -66,10 +67,13 @@ int main(void) {
 			//Goes through each word, comparing it to all the other words
 			for(int j = 0; j < length; j++) {
 				if(i == j)continue;
+				//If one word is an anagram of another, it sets metadata to true
 				if(isAnagram(aszWords[i], aszWords[j])) {
 					meta->bIsAnagram = true;
 				}
-				if(areDisjoint(aszWords[i], aszWords[j])) {
+				//Disjoint is set to true by default, and set to false if two words aren't disjoint
+				//The disjoint function is case insensitive, which means JUMP isn't disjoint, otherwise JUMP would be disjoint
+				if(!areDisjoint(aszWords[i], aszWords[j])) {
 					meta->bIsDisjoint = false;
 				}
 			}
@@ -91,6 +95,8 @@ int main(void) {
 
 //Function for changing some of the metadata for cleaner code
 void changeMetadata(struct TASK2_WORD_METADATA *meta, char* word, int i) {
+	memset(meta, 0, sizeof(struct TASK2_WORD_METADATA));
+	
 	meta->iIndex = i;
 	
 	meta->bIsPalindrom = isPalindrome(word);
@@ -101,4 +107,5 @@ void changeMetadata(struct TASK2_WORD_METADATA *meta, char* word, int i) {
 	//Sets iSize to the length of the word passed in as a parameter, and copies the word into szWord[]
 	meta->iSize = strlen(word);
 	strncpy(meta->szWord, word, MAX_WORD_LENGTH - 1);
+	meta->szWord[MAX_WORD_LENGTH - 1] = '\0';
 }
